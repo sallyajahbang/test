@@ -151,7 +151,7 @@ fun BrowserScreen(
                 onEdit = onEdit
             )
         } else {
-            OnlineTab(pad = pad)
+            OnlineTab(pad = pad, onOpen = onEdit)
         }
     }
 }
@@ -205,24 +205,6 @@ fun VideoLibraryTab(
                 )
             }
         }
-    }
-}
-
-/** Tab sementara untuk daftar wallpaper online. Belum ada sumber data. */
-@Composable
-fun OnlineTab(pad: PaddingValues) {
-    Column(
-        Modifier.padding(pad).fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Wallpaper online", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Daftar wallpaper online akan tampil di sini. Tab ini masih sementara.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
