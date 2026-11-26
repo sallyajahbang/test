@@ -43,9 +43,9 @@ void main() {
 """
 
 /**
- * Render thread: EGL window di atas surface wallpaper, MediaPlayer menulis ke SurfaceTexture (OES),
- * dan shader menggambar video dengan skala cover x skala user + offset.
- * Rumus ini sama dengan preview di editor, sehingga hasil wallpaper sesuai yang terlihat.
+ * Render thread: EGL window di atas surface wallpaper. MediaPlayer menulis ke SurfaceTexture (OES),
+ * shader menggambar video dengan skala cover x skala user + offset, dan loop dibatasi
+ * startMs..endMs (dicek tiap 100 ms; bila lewat endMs, seek kembali ke startMs).
  */
 class GlueRenderer(
     private val context: Context,
@@ -88,6 +88,13 @@ class GlueRenderer(
             put(floatArrayOf(-1f, -1f, 0f, 0f, 1f, -1f, 1f, 0f, -1f, 1f, 0f, 1f, 1f, 1f, 1f, 1f))
         }
 
+    private val loopTick = object : Runnable {
+        override fun run() {
+            checkLoop()
+            handler.postDelayed(this, 100)
+        }
+    }
+
     override fun onLooperPrepared() {
         initEgl()
         initGl()
@@ -120,6 +127,7 @@ class GlueRenderer(
                 initPlayer()
             } else {
                 applyVolume()
+                checkLoop()
             }
             if (prepared) drawFrame()
         }
@@ -128,6 +136,7 @@ class GlueRenderer(
     fun release() {
         handler.post {
             released = true
+            handler.removeCallbacks(loopTick)
             player?.release()
             player = null
             surfaceTexture?.release()
@@ -211,8 +220,11 @@ class GlueRenderer(
                 videoH = max(1, p.videoHeight).toFloat()
                 prepared = true
                 applyVolume()
+                val start = config.startMs.coerceAtLeast(0L)
+                if (start > 0) p.seekTo(start.toInt())
                 if (visible) p.start()
-                drawFrame()
+                handler.removeCallbacks(loopTick)
+                handler.post(loopTick)
             }
             mp.prepareAsync()
             player = mp
@@ -224,6 +236,22 @@ class GlueRenderer(
     private fun applyVolume() {
         val v = if (config.muted) 0f else 1f
         runCatching { player?.setVolume(v, v) }
+    }
+
+    /** Loop dalam rentang startMs..endMs. Endpoint 0 berarti sampai akhir video. */
+    private fun checkLoop() {
+        val mp = player ?: return
+        if (!prepared) return
+        runCatching {
+            val dur = mp.duration.toLong()
+            val start = config.startMs.coerceAtLeast(0L)
+            val end = if (config.endMs > 0) minOf(config.endMs, dur) else dur
+            if (end <= start) return
+            val pos = mp.currentPosition.toLong()
+            if (pos >= end - 60 || pos < start) {
+                mp.seekTo(start.toInt())
+            }
+        }
     }
 
     private fun drawFrame() {

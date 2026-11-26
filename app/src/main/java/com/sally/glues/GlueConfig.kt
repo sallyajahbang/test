@@ -10,7 +10,11 @@ data class GlueConfig(
     /** Pergeseran horizontal sebagai fraksi lebar layar (-1..1). */
     val offsetX: Float = 0f,
     /** Pergeseran vertikal sebagai fraksi tinggi layar (-1..1). */
-    val offsetY: Float = 0f
+    val offsetY: Float = 0f,
+    /** Posisi awal loop dalam milidetik. */
+    val startMs: Long = 0L,
+    /** Posisi akhir loop dalam milidetik. 0 = sampai akhir video. */
+    val endMs: Long = 0L
 )
 
 object GlueStore {
@@ -23,7 +27,9 @@ object GlueStore {
             muted = p.getBoolean("muted", true),
             scale = p.getFloat("scale", 1f),
             offsetX = p.getFloat("ox", 0f),
-            offsetY = p.getFloat("oy", 0f)
+            offsetY = p.getFloat("oy", 0f),
+            startMs = p.getLong("start", 0L),
+            endMs = p.getLong("end", 0L)
         )
     }
 
@@ -34,6 +40,8 @@ object GlueStore {
             .putFloat("scale", c.scale)
             .putFloat("ox", c.offsetX)
             .putFloat("oy", c.offsetY)
+            .putLong("start", c.startMs)
+            .putLong("end", c.endMs)
             .apply()
     }
 }

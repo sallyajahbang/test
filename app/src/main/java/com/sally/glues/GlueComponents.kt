@@ -37,16 +37,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.delay
 
 /**
- * Pemutar video memakai VideoView. Mute dikontrol lewat MediaPlayer.setVolume.
- * Dipanggil ulang dengan key(uri) agar video ganti dengan bersih.
+ * Pemutar video memakai VideoView.
+ * Mute lewat MediaPlayer.setVolume; loop startMs..endMs dijaga dengan polling ringan
+ * supaya preview sama dengan hasil di wallpaper.
  */
 @Composable
 fun VideoSurface(
     uri: Uri,
     muted: Boolean,
     modifier: Modifier = Modifier,
+    startMs: Long = 0L,
+    endMs: Long = 0L,
     onVideoSize: (Int, Int) -> Unit = { _, _ -> }
 ) {
     val player = remember(uri) { mutableStateOf<MediaPlayer?>(null) }
@@ -54,6 +58,21 @@ fun VideoSurface(
     LaunchedEffect(player.value, muted) {
         val v = if (muted) 0f else 1f
         runCatching { player.value?.setVolume(v, v) }
+    }
+
+    LaunchedEffect(player.value, startMs, endMs) {
+        val mp = player.value ?: return@LaunchedEffect
+        while (true) {
+            delay(100)
+            runCatching {
+                val dur = mp.duration.toLong()
+                val end = if (endMs > 0) minOf(endMs, dur) else dur
+                if (end > startMs) {
+                    val pos = mp.currentPosition.toLong()
+                    if (pos >= end - 60 || pos < startMs) mp.seekTo(startMs.toInt())
+                }
+            }
+        }
     }
 
     AndroidView(
@@ -64,6 +83,7 @@ fun VideoSurface(
                     mp.isLooping = true
                     onVideoSize(mp.videoWidth, mp.videoHeight)
                     player.value = mp
+                    if (startMs > 0) mp.seekTo(startMs.toInt())
                     start()
                 }
                 setVideoURI(uri)
@@ -73,7 +93,7 @@ fun VideoSurface(
     )
 }
 
-/** Komponen kartu video: thumbnail, durasi, dan penanda video aktif. */
+/** Kartu video di grid: thumbnail, durasi, dan penanda video aktif. */
 @Composable
 fun VideoTile(video: VideoItem, selected: Boolean, active: Boolean, onClick: () -> Unit) {
     val context = LocalContext.current
@@ -136,7 +156,7 @@ fun VideoTile(video: VideoItem, selected: Boolean, active: Boolean, onClick: () 
     }
 }
 
-/** Kartu preview besar di atas grid browser. */
+/** Kartu preview. Muncul begitu sebuah video dipilih. */
 @Composable
 fun PreviewCard(video: VideoItem?, onEdit: (VideoItem) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
