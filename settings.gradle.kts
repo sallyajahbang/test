@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "SallyCppLauncher"
+rootProject.name = "Glues"
 include(":app")
