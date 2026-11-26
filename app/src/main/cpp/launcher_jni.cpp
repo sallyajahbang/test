@@ -132,7 +132,7 @@ static void runGame(LaunchConfig cfg) {
     }
 
     JavaVMInitArgs vmArgs{};
-    vmArgs.version = JNI_VERSION_1_8;
+    vmArgs.version = JNI_VERSION_1_6;
     vmArgs.nOptions = static_cast<jint>(vmOpts.size());
     vmArgs.options = vmOpts.data();
     vmArgs.ignoreUnrecognized = JNI_TRUE;
